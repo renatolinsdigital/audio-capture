@@ -7,3 +7,11 @@ export interface Recording {
 }
 
 export type RecordingStatus = 'idle' | 'recording' | 'paused';
+
+export type BitDepth = 16 | 32;
+export type ChannelMode = 'stereo' | 'mono';
+
+export interface AudioQuality {
+  bitDepth: BitDepth;
+  channelMode: ChannelMode;
+}

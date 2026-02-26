@@ -107,18 +107,57 @@ Switching folders does not move existing recordings. Each folder has its own ind
 
 ---
 
+## Recording quality
+
+The controls panel exposes a **QUALITY** section when the app is idle. Changes take effect immediately for the next recording and are persisted automatically to `audio-capture.toml`.
+
+### Bit depth
+
+| Setting | Format | Size impact | When to use |
+|---|---|---|---|
+| **16-bit** (default) | PCM integer | Half the size of 32-bit | General use, voice, meetings, podcasts |
+| **32-bit** | IEEE float | ~22 MB/min at 48 kHz stereo | Music production, post-processing, archival |
+
+The WASAPI loopback always captures 32-bit float internally. When 16-bit is selected the app converts `f32 → i16` inline (`sample × 32767`, clamped) before writing to disk — no audible quality difference for typical listening.
+
+### Channels
+
+| Setting | Channels written | Size impact | When to use |
+|---|---|---|---|
+| **Stereo** (default) | 2 (L + R) | Full size | Music, gaming, anything with spatial audio |
+| **Mono** | 1 (L+R averaged) | Half the stereo size | Voice, meetings, narration |
+
+### Estimated sizes at 48 kHz
+
+| Bit depth | Channels | ~MB per minute |
+|---|---|---|
+| 16-bit | Stereo | 11 MB |
+| 16-bit | Mono | 5.5 MB |
+| 32-bit | Stereo | 22 MB |
+| 32-bit | Mono | 11 MB |
+
+The hint bar at the bottom of the QUALITY section shows the current estimate and a one-line description. Hovering any option button shows a full tooltip explaining its impact.
+
+---
+
 ## Configuration
 
 The file `audio-capture.toml` stores the app’s preferences. It is created automatically on the first run.
 
-The only setting persisted to this file is `output_dir` — written automatically when you change the output folder via the UI. You can also edit it manually:
+All settings are written automatically by the app when you change them via the UI. You can also edit the file manually while the app is closed:
 
 ```toml
 # audio-capture.toml
 
 # Absolute path to the folder where recordings are saved.
-# Managed by the app; leave unset to use the Desktop (default).
+# Leave unset to use the Desktop (default).
 # output_dir = "C:\\Users\\you\\Music\\Recordings"
+
+# WAV bit depth: 16 (PCM, default — smaller files) or 32 (float — maximum precision).
+# bit_depth = 16
+
+# Channel mode: "stereo" (default) or "mono" (halves file size — ideal for voice).
+# channels = "stereo"
 ```
 
 **Gain** is not stored in this file. The baseline is always system-level unity (0 dB). Use the in-app **GAIN** slider (−6 to +6 dB) before each recording to adjust.

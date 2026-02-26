@@ -53,7 +53,9 @@ pub fn run() {
 
             std::fs::create_dir_all(&output_dir).ok();
 
-            app.manage(AudioState::new(output_dir));
+            let audio_state = AudioState::new(output_dir);
+            audio_state.set_quality(config.bit_depth, &config.channels);
+            app.manage(audio_state);
             app.manage(ConfigDir(config_base_dir));
             Ok(())
         })
@@ -71,6 +73,8 @@ pub fn run() {
             set_output_dir,
             open_output_dir,
             pick_output_dir,
+            get_audio_quality,
+            set_audio_quality,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

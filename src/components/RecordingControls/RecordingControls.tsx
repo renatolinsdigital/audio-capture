@@ -1,10 +1,13 @@
-import { RecordingStatus } from '../../types';
+import { BitDepth, ChannelMode, RecordingStatus } from '../../types';
 import styles from './RecordingControls.module.scss';
 
 interface RecordingControlsProps {
   status: RecordingStatus;
   gainDb: number;
   onGainChange: (db: number) => void;
+  bitDepth: BitDepth;
+  channelMode: ChannelMode;
+  onQualityChange: (bitDepth: BitDepth, channelMode: ChannelMode) => void;
   outputDir: string;
   onChangeOutputDir: () => void;
   onOpenOutputDir: () => void;
@@ -14,10 +17,28 @@ interface RecordingControlsProps {
   onStop: () => void;
 }
 
+/** Approximate uncompressed WAV size at 48 kHz for 1 minute of recording. */
+function estimateSizeMbPerMin(bitDepth: BitDepth, channelMode: ChannelMode): string {
+  const bytesPerSample = bitDepth / 8;
+  const channels = channelMode === 'stereo' ? 2 : 1;
+  const mb = (48000 * bytesPerSample * channels * 60) / 1048576;
+  return mb.toFixed(1);
+}
+
+function qualityDescription(bitDepth: BitDepth, channelMode: ChannelMode): string {
+  if (bitDepth === 16 && channelMode === 'mono') return 'Voice optimised · smallest files';
+  if (bitDepth === 16 && channelMode === 'stereo') return 'CD quality · standard size';
+  if (bitDepth === 32 && channelMode === 'mono') return 'High precision · mono capture';
+  return 'Maximum precision · largest files';
+}
+
 export default function RecordingControls({
   status,
   gainDb,
   onGainChange,
+  bitDepth,
+  channelMode,
+  onQualityChange,
   outputDir,
   onChangeOutputDir,
   onOpenOutputDir,
@@ -71,6 +92,61 @@ export default function RecordingControls({
               onChange={e => onGainChange(parseFloat(e.target.value))}
             />
             <span className={styles.gainEdge}>+6</span>
+          </div>
+        </div>
+      )}
+
+      {status === 'idle' && (
+        <div className={styles.qualitySection}>
+          <div className={styles.qualityHeader}>
+            <span className={styles.qualityLabel}>QUALITY</span>
+          </div>
+
+          <div className={styles.qualityRow}>
+            <span className={styles.qualityRowLabel}>BIT DEPTH</span>
+            <div className={styles.qualityToggle}>
+              <button
+                className={`${styles.qualityBtn} ${bitDepth === 16 ? styles.qualityBtnActive : ''}`}
+                onClick={() => onQualityChange(16, channelMode)}
+                title="16-bit PCM — standard quality, universally compatible, half the file size of 32-bit float"
+              >
+                16-bit
+              </button>
+              <button
+                className={`${styles.qualityBtn} ${bitDepth === 32 ? styles.qualityBtnActive : ''}`}
+                onClick={() => onQualityChange(32, channelMode)}
+                title="32-bit Float — maximum dynamic range and precision; use for music production or post-processing"
+              >
+                32-bit
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.qualityRow}>
+            <span className={styles.qualityRowLabel}>CHANNELS</span>
+            <div className={styles.qualityToggle}>
+              <button
+                className={`${styles.qualityBtn} ${channelMode === 'stereo' ? styles.qualityBtnActive : ''}`}
+                onClick={() => onQualityChange(bitDepth, 'stereo')}
+                title="Stereo — captures left and right channels separately; preserves spatial audio"
+              >
+                Stereo
+              </button>
+              <button
+                className={`${styles.qualityBtn} ${channelMode === 'mono' ? styles.qualityBtnActive : ''}`}
+                onClick={() => onQualityChange(bitDepth, 'mono')}
+                title="Mono — L+R averaged into a single channel; halves file size; ideal for voice and meetings"
+              >
+                Mono
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.qualityHint}>
+            <span className={styles.qualitySize}>
+              ~{estimateSizeMbPerMin(bitDepth, channelMode)} MB/min
+            </span>
+            <span className={styles.qualityDesc}>{qualityDescription(bitDepth, channelMode)}</span>
           </div>
         </div>
       )}

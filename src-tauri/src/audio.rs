@@ -17,6 +17,10 @@ pub struct AudioState {
     samples_written: Arc<Mutex<u64>>,
     sample_rate: Arc<Mutex<u32>>,
     channels: Arc<Mutex<u16>>,
+    /// Target bit depth for WAV output: 16 (PCM) or 32 (float).
+    target_bit_depth: Mutex<u16>,
+    /// When true, stereo L+R is averaged down to a single mono channel.
+    force_mono: Mutex<bool>,
 }
 
 impl AudioState {
@@ -29,7 +33,20 @@ impl AudioState {
             samples_written: Arc::new(Mutex::new(0)),
             sample_rate: Arc::new(Mutex::new(48000)),
             channels: Arc::new(Mutex::new(2)),
+            target_bit_depth: Mutex::new(16),
+            force_mono: Mutex::new(false),
         }
+    }
+
+    pub fn set_quality(&self, bit_depth: u16, channels: &str) {
+        *self.target_bit_depth.lock().unwrap() = if bit_depth == 32 { 32 } else { 16 };
+        *self.force_mono.lock().unwrap() = channels == "mono";
+    }
+
+    pub fn get_quality(&self) -> (u16, String) {
+        let bd = *self.target_bit_depth.lock().unwrap();
+        let mono = *self.force_mono.lock().unwrap();
+        (bd, if mono { "mono".to_string() } else { "stereo".to_string() })
     }
 
     pub fn output_dir(&self) -> PathBuf {
@@ -58,9 +75,21 @@ impl AudioState {
         let channels = self.channels.clone();
         // Convert the UI gain slider (dB) to a linear multiplier.
         let config_gain = 10_f32.powf(gain_db / 20.0);
+        // Snapshot quality settings (immutable for the life of this recording).
+        let target_bit_depth = *self.target_bit_depth.lock().unwrap();
+        let force_mono = *self.force_mono.lock().unwrap();
 
         let handle = thread::spawn(move || {
-            capture_loopback(temp_path, state, samples_written, sample_rate, channels, config_gain)
+            capture_loopback(
+                temp_path,
+                state,
+                samples_written,
+                sample_rate,
+                channels,
+                config_gain,
+                target_bit_depth,
+                force_mono,
+            )
         });
 
         *self.capture_thread.lock().unwrap() = Some(handle);
@@ -140,6 +169,8 @@ fn capture_loopback(
     sample_rate_out: Arc<Mutex<u32>>,
     channels_out: Arc<Mutex<u16>>,
     config_gain: f32,
+    target_bit_depth: u16,
+    force_mono: bool,
 ) -> Result<(), String> {
     use std::ptr;
     use windows::Win32::Media::Audio::*;
@@ -199,17 +230,21 @@ fn capture_loopback(
             .GetService()
             .map_err(|e| format!("Failed to get capture client: {}", e))?;
 
-        // Create WAV writer
-        // WASAPI shared mode always outputs IEEE float 32-bit
-        let wav_bits = if bits_per_sample == 32 { 32 } else { 16 };
-        let wav_format = if bits_per_sample == 32 {
-            SampleFormat::Float
+        // Create WAV writer.
+        // WASAPI shared mode always delivers 32-bit float.
+        // We honour target_bit_depth: convert f32 → i16 when 16-bit is requested.
+        // When force_mono is set and the source is stereo we average L+R.
+        let src_is_float = bits_per_sample == 32;
+        let (wav_bits, wav_format) = if target_bit_depth == 16 {
+            (16u16, SampleFormat::Int)
         } else {
-            SampleFormat::Int
+            // 32-bit: only makes sense as float
+            (32u16, SampleFormat::Float)
         };
+        let out_channels: u16 = if force_mono && n_channels == 2 { 1 } else { n_channels };
 
         let spec = WavSpec {
-            channels: n_channels,
+            channels: out_channels,
             sample_rate,
             bits_per_sample: wav_bits,
             sample_format: wav_format,
@@ -262,46 +297,86 @@ fn capture_loopback(
                     let total_samples = (num_frames as usize) * (n_channels as usize);
                     let is_silent = flags & 0x2 != 0; // AUDCLNT_BUFFERFLAGS_SILENT
 
-                    if wav_format == SampleFormat::Float {
-                        if is_silent {
-                            for _ in 0..total_samples {
-                                writer
-                                    .write_sample(0.0f32)
-                                    .map_err(|e| format!("Write failed: {}", e))?;
-                            }
-                        } else {
-                            let data = std::slice::from_raw_parts(
-                                buffer as *const f32,
-                                total_samples,
-                            );
-                            for &sample in data {
-                                writer
-                                    .write_sample((sample * config_gain).clamp(-1.0, 1.0))
-                                    .map_err(|e| format!("Write failed: {}", e))?;
+                    // Number of samples actually written may be halved when downmixing to mono.
+                    let do_mono = force_mono && n_channels == 2;
+                    let out_sample_count = if do_mono { total_samples / 2 } else { total_samples };
+
+                    match (src_is_float, wav_format) {
+                        // ── 32-bit float output (source: f32, target: f32) ──────────────
+                        (true, SampleFormat::Float) => {
+                            if is_silent {
+                                for _ in 0..out_sample_count {
+                                    writer.write_sample(0.0f32)
+                                        .map_err(|e| format!("Write failed: {}", e))?;
+                                }
+                            } else {
+                                let data = std::slice::from_raw_parts(buffer as *const f32, total_samples);
+                                if do_mono {
+                                    for chunk in data.chunks_exact(2) {
+                                        let mono = ((chunk[0] + chunk[1]) * 0.5 * config_gain)
+                                            .clamp(-1.0, 1.0);
+                                        writer.write_sample(mono)
+                                            .map_err(|e| format!("Write failed: {}", e))?;
+                                    }
+                                } else {
+                                    for &s in data {
+                                        writer.write_sample((s * config_gain).clamp(-1.0, 1.0))
+                                            .map_err(|e| format!("Write failed: {}", e))?;
+                                    }
+                                }
                             }
                         }
-                    } else {
-                        // 16-bit PCM fallback
-                        if is_silent {
-                            for _ in 0..total_samples {
-                                writer
-                                    .write_sample(0i16)
-                                    .map_err(|e| format!("Write failed: {}", e))?;
+                        // ── 16-bit PCM output, source is f32 (most common path) ────────
+                        (true, SampleFormat::Int) => {
+                            if is_silent {
+                                for _ in 0..out_sample_count {
+                                    writer.write_sample(0i16)
+                                        .map_err(|e| format!("Write failed: {}", e))?;
+                                }
+                            } else {
+                                let data = std::slice::from_raw_parts(buffer as *const f32, total_samples);
+                                if do_mono {
+                                    for chunk in data.chunks_exact(2) {
+                                        let mono = ((chunk[0] + chunk[1]) * 0.5 * config_gain)
+                                            .clamp(-1.0, 1.0);
+                                        writer.write_sample((mono * 32767.0) as i16)
+                                            .map_err(|e| format!("Write failed: {}", e))?;
+                                    }
+                                } else {
+                                    for &s in data {
+                                        let gained = (s * config_gain).clamp(-1.0, 1.0);
+                                        writer.write_sample((gained * 32767.0) as i16)
+                                            .map_err(|e| format!("Write failed: {}", e))?;
+                                    }
+                                }
                             }
-                        } else {
-                            let data = std::slice::from_raw_parts(
-                                buffer as *const i16,
-                                total_samples,
-                            );
-                            for &sample in data {
-                                writer
-                                    .write_sample(sample)
-                                    .map_err(|e| format!("Write failed: {}", e))?;
+                        }
+                        // ── 16-bit PCM output, source is native i16 (rare WASAPI fallback)
+                        (false, _) => {
+                            if is_silent {
+                                for _ in 0..out_sample_count {
+                                    writer.write_sample(0i16)
+                                        .map_err(|e| format!("Write failed: {}", e))?;
+                                }
+                            } else {
+                                let data = std::slice::from_raw_parts(buffer as *const i16, total_samples);
+                                if do_mono {
+                                    for chunk in data.chunks_exact(2) {
+                                        let mono = ((chunk[0] as i32 + chunk[1] as i32) / 2) as i16;
+                                        writer.write_sample(mono)
+                                            .map_err(|e| format!("Write failed: {}", e))?;
+                                    }
+                                } else {
+                                    for &s in data {
+                                        writer.write_sample(s)
+                                            .map_err(|e| format!("Write failed: {}", e))?;
+                                    }
+                                }
                             }
                         }
                     }
 
-                    *samples_written.lock().unwrap() += total_samples as u64;
+                    *samples_written.lock().unwrap() += out_sample_count as u64;
                 }
 
                 capture_client
@@ -337,6 +412,8 @@ fn capture_loopback(
     _sample_rate_out: Arc<Mutex<u32>>,
     _channels_out: Arc<Mutex<u16>>,
     _config_gain: f32,
+    _target_bit_depth: u16,
+    _force_mono: bool,
 ) -> Result<(), String> {
     Err("System audio capture is only supported on Windows".to_string())
 }

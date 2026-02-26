@@ -50,6 +50,23 @@ pub fn start_recording(state: State<'_, AudioState>, gain_db: f32) -> Result<(),
 }
 
 #[tauri::command]
+pub fn get_audio_quality(state: State<'_, AudioState>) -> (u16, String) {
+    state.get_quality()
+}
+
+#[tauri::command]
+pub fn set_audio_quality(
+    state: State<'_, AudioState>,
+    config_dir: State<'_, ConfigDir>,
+    bit_depth: u16,
+    channels: String,
+) -> Result<(), String> {
+    state.set_quality(bit_depth, &channels);
+    AppConfig::save_audio_quality(&config_dir.0, bit_depth, &channels);
+    Ok(())
+}
+
+#[tauri::command]
 pub fn pause_recording(state: State<'_, AudioState>) -> Result<(), String> {
     state.pause()
 }

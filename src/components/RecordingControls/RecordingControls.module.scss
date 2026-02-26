@@ -290,3 +290,106 @@
   direction: rtl; // show the end of long paths
   text-align: left;
 }
+
+// ── Quality section ───────────────────────────────────────────────────────────
+
+.qualitySection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+}
+
+.qualityHeader {
+  display: flex;
+  align-items: center;
+}
+
+.qualityLabel {
+  font-family: $font-mono;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: $text-secondary;
+}
+
+.qualityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-sm;
+}
+
+.qualityRowLabel {
+  font-family: $font-mono;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: $text-muted;
+  flex-shrink: 0;
+}
+
+.qualityToggle {
+  display: flex;
+  gap: 0;
+  border: $border-width solid $border-color;
+}
+
+.qualityBtn {
+  flex: 1;
+  padding: 4px $space-sm;
+  font-family: $font-mono;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: $bg-secondary;
+  border: none;
+  border-right: $border-width solid $border-color;
+  color: $text-muted;
+  box-shadow: none;
+  cursor: pointer;
+  transition:
+    background $transition-fast,
+    color $transition-fast;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover:not(.qualityBtnActive) {
+    background: $bg-surface;
+    color: $text-secondary;
+  }
+}
+
+.qualityBtnActive {
+  background: $accent-primary;
+  color: #fff;
+  box-shadow: none;
+}
+
+.qualityHint {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-xs;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+}
+
+.qualitySize {
+  font-family: $font-mono;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: $accent-primary;
+  flex-shrink: 0;
+}
+
+.qualityDesc {
+  font-family: $font-mono;
+  font-size: 0.6rem;
+  color: $text-muted;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

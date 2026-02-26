@@ -89,6 +89,9 @@ function App() {
             status={recorder.status}
             gainDb={recorder.gainDb}
             onGainChange={recorder.setGainDb}
+            bitDepth={recorder.bitDepth}
+            channelMode={recorder.channelMode}
+            onQualityChange={recorder.setAudioQuality}
             outputDir={recorder.outputDir}
             onChangeOutputDir={handleChangeOutputDir}
             onOpenOutputDir={recorder.openOutputFolder}

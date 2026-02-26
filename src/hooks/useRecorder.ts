@@ -1,21 +1,30 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { RecordingStatus } from '../types';
+import { RecordingStatus, BitDepth, ChannelMode } from '../types';
 
 export function useRecorder() {
   const [status, setStatus] = useState<RecordingStatus>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [gainDb, setGainDb] = useState(0);
   const [outputDir, setOutputDirState] = useState('');
+  const [bitDepth, setBitDepth] = useState<BitDepth>(16);
+  const [channelMode, setChannelMode] = useState<ChannelMode>('stereo');
   const startTimeRef = useRef<number | null>(null);
   const accumulatedRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Load the output dir from Rust once on mount
+  // Load the output dir and quality settings from Rust once on mount
   useEffect(() => {
     invoke<string>('get_output_dir')
       .then(d => setOutputDirState(d))
       .catch(err => console.error('Failed to load output dir:', err));
+
+    invoke<[number, string]>('get_audio_quality')
+      .then(([bd, ch]) => {
+        setBitDepth((bd === 32 ? 32 : 16) as BitDepth);
+        setChannelMode(ch === 'mono' ? 'mono' : 'stereo');
+      })
+      .catch(err => console.error('Failed to load audio quality:', err));
   }, []);
 
   const startTimer = useCallback(() => {
@@ -128,6 +137,22 @@ export function useRecorder() {
     }
   }, []);
 
+  const setAudioQuality = useCallback(
+    async (newBitDepth: BitDepth, newChannelMode: ChannelMode) => {
+      try {
+        await invoke('set_audio_quality', {
+          bitDepth: newBitDepth,
+          channels: newChannelMode,
+        });
+        setBitDepth(newBitDepth);
+        setChannelMode(newChannelMode);
+      } catch (err) {
+        console.error('Failed to save audio quality:', err);
+      }
+    },
+    []
+  );
+
   return {
     status,
     elapsedTime,
@@ -136,6 +161,9 @@ export function useRecorder() {
     outputDir,
     changeOutputDir,
     openOutputFolder,
+    bitDepth,
+    channelMode,
+    setAudioQuality,
     startRecording,
     pauseRecording,
     resumeRecording,

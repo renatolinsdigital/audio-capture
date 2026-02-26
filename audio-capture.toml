@@ -1,8 +1,2 @@
-# Audio Capture — configuration
-#
-# output_dir: absolute path to the folder where recordings are saved.
-# Leave this unset to use the default (Desktop).
-# This is managed by the app when you change the folder via the UI.
-#
-# Example:
-#   output_dir = "C:\\Users\\you\\Music\\Recordings"
+bit_depth = 16
+channels = "stereo"
