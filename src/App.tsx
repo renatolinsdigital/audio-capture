@@ -13,6 +13,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [playKey, setPlayKey] = useState(0);
 
   const { recordings, loadRecordings, renameRecording, deleteRecording } = useRecordings();
   const recorder = useRecorder();
@@ -39,9 +40,23 @@ function App() {
     loadRecordings();
   }, [recorder, loadRecordings]);
 
-  const handlePlay = useCallback((slug: string) => {
-    setCurrentlyPlaying(slug);
-  }, []);
+  const handleChangeOutputDir = useCallback(async () => {
+    const picked = await recorder.changeOutputDir();
+    if (picked) loadRecordings();
+  }, [recorder, loadRecordings]);
+
+  const handlePlay = useCallback(
+    (slug: string) => {
+      if (slug === currentlyPlaying) {
+        // Same track — restart from the beginning.
+        setPlayKey(k => k + 1);
+      } else {
+        setCurrentlyPlaying(slug);
+        setPlayKey(k => k + 1);
+      }
+    },
+    [currentlyPlaying]
+  );
 
   const handleRename = useCallback(
     async (oldSlug: string, newName: string) => {
@@ -72,6 +87,11 @@ function App() {
         <aside className={styles.controlsPanel}>
           <RecordingControls
             status={recorder.status}
+            gainDb={recorder.gainDb}
+            onGainChange={recorder.setGainDb}
+            outputDir={recorder.outputDir}
+            onChangeOutputDir={handleChangeOutputDir}
+            onOpenOutputDir={recorder.openOutputFolder}
             onRecord={recorder.startRecording}
             onPause={recorder.pauseRecording}
             onResume={recorder.resumeRecording}
@@ -91,7 +111,11 @@ function App() {
         </section>
       </main>
 
-      <AudioPlayer recording={playingRecording || null} onClose={() => setCurrentlyPlaying(null)} />
+      <AudioPlayer
+        recording={playingRecording || null}
+        playKey={playKey}
+        onClose={() => setCurrentlyPlaying(null)}
+      />
 
       {showSaveModal && <SaveModal onSave={handleSave} onCancel={handleCancelSave} />}
     </div>

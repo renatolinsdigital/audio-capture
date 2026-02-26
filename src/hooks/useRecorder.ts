@@ -5,9 +5,18 @@ import { RecordingStatus } from '../types';
 export function useRecorder() {
   const [status, setStatus] = useState<RecordingStatus>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [gainDb, setGainDb] = useState(0);
+  const [outputDir, setOutputDirState] = useState('');
   const startTimeRef = useRef<number | null>(null);
   const accumulatedRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Load the output dir from Rust once on mount
+  useEffect(() => {
+    invoke<string>('get_output_dir')
+      .then(d => setOutputDirState(d))
+      .catch(err => console.error('Failed to load output dir:', err));
+  }, []);
 
   const startTimer = useCallback(() => {
     startTimeRef.current = Date.now();
@@ -49,7 +58,7 @@ export function useRecorder() {
 
   const startRecording = useCallback(async () => {
     try {
-      await invoke('start_recording');
+      await invoke('start_recording', { gainDb });
       setStatus('recording');
       accumulatedRef.current = 0;
       setElapsedTime(0);
@@ -57,7 +66,7 @@ export function useRecorder() {
     } catch (err) {
       console.error('Failed to start recording:', err);
     }
-  }, [startTimer]);
+  }, [startTimer, gainDb]);
 
   const pauseRecording = useCallback(async () => {
     try {
@@ -97,9 +106,36 @@ export function useRecorder() {
     }
   }, []);
 
+  const changeOutputDir = useCallback(async (): Promise<string | null> => {
+    try {
+      const picked = await invoke<string | null>('pick_output_dir');
+      if (picked) {
+        await invoke('set_output_dir', { path: picked });
+        setOutputDirState(picked);
+        return picked;
+      }
+    } catch (err) {
+      console.error('Failed to change output dir:', err);
+    }
+    return null;
+  }, []);
+
+  const openOutputFolder = useCallback(async () => {
+    try {
+      await invoke('open_output_dir');
+    } catch (err) {
+      console.error('Failed to open output folder:', err);
+    }
+  }, []);
+
   return {
     status,
     elapsedTime,
+    gainDb,
+    setGainDb,
+    outputDir,
+    changeOutputDir,
+    openOutputFolder,
     startRecording,
     pauseRecording,
     resumeRecording,

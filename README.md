@@ -68,11 +68,11 @@ See [docs/running_the_project.md](docs/running_the_project.md) for the full expl
 ### Available Scripts
 
 ```bash
-# Development (hot-reload, recordings → project root output/)
+# Development (hot-reload, recordings → Desktop)
 tauri-dev.bat dev          # CMD / PowerShell
 cmd //c tauri-dev.bat dev  # Git Bash
 
-# Dev build — release binary, recordings still → project root output/
+# Dev build — release binary, recordings → Desktop
 npm run build:dev   # build once
 npm run start       # run without rebuilding (aborts if dev build not found)
 

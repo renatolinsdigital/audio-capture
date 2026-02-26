@@ -1,4 +1,5 @@
 use crate::audio::AudioState;
+use crate::config::{AppConfig, ConfigDir};
 use serde::{Deserialize, Serialize};
 use slug::slugify;
 use std::path::{Path, PathBuf};
@@ -44,8 +45,8 @@ fn unique_slug(base_slug: &str, output_dir: &Path) -> String {
 }
 
 #[tauri::command]
-pub fn start_recording(state: State<'_, AudioState>) -> Result<(), String> {
-    state.start_recording()
+pub fn start_recording(state: State<'_, AudioState>, gain_db: f32) -> Result<(), String> {
+    state.start_recording(gain_db)
 }
 
 #[tauri::command]
@@ -74,8 +75,8 @@ pub fn save_recording(state: State<'_, AudioState>, name: String) -> Result<Reco
     }
 
     let base_slug = slugify(&name);
-    let slug = unique_slug(&base_slug, &state.output_dir);
-    let final_path = state.output_dir.join(format!("{}.wav", slug));
+    let slug = unique_slug(&base_slug, &state.output_dir());
+    let final_path = state.output_dir().join(format!("{}.wav", slug));
 
     std::fs::rename(&temp_path, &final_path)
         .map_err(|e| format!("Failed to rename file: {}", e))?;
@@ -95,20 +96,20 @@ pub fn save_recording(state: State<'_, AudioState>, name: String) -> Result<Reco
         file_size,
     };
 
-    let mut metadata = load_metadata(&state.output_dir);
+    let mut metadata = load_metadata(&state.output_dir());
     metadata.push(meta.clone());
-    save_metadata(&state.output_dir, &metadata);
+    save_metadata(&state.output_dir(), &metadata);
 
     Ok(meta)
 }
 
 #[tauri::command]
 pub fn list_recordings(state: State<'_, AudioState>) -> Result<Vec<RecordingMeta>, String> {
-    let mut metadata = load_metadata(&state.output_dir);
+    let mut metadata = load_metadata(&state.output_dir());
 
     // Filter out entries whose files no longer exist
-    metadata.retain(|m| state.output_dir.join(format!("{}.wav", m.slug)).exists());
-    save_metadata(&state.output_dir, &metadata);
+    metadata.retain(|m| state.output_dir().join(format!("{}.wav", m.slug)).exists());
+    save_metadata(&state.output_dir(), &metadata);
 
     // Sort by creation date (newest first)
     metadata.sort_by(|a, b| b.created_at.cmp(&a.created_at));
@@ -122,7 +123,7 @@ pub fn rename_recording(
     old_slug: String,
     new_name: String,
 ) -> Result<RecordingMeta, String> {
-    let old_path = state.output_dir.join(format!("{}.wav", old_slug));
+    let old_path = state.output_dir().join(format!("{}.wav", old_slug));
     if !old_path.exists() {
         return Err("Recording file not found".to_string());
     }
@@ -131,22 +132,22 @@ pub fn rename_recording(
     let new_slug = if new_base_slug == old_slug {
         old_slug.clone()
     } else {
-        unique_slug(&new_base_slug, &state.output_dir)
+        unique_slug(&new_base_slug, &state.output_dir())
     };
 
-    let new_path = state.output_dir.join(format!("{}.wav", new_slug));
+    let new_path = state.output_dir().join(format!("{}.wav", new_slug));
 
     if new_slug != old_slug {
         std::fs::rename(&old_path, &new_path)
             .map_err(|e| format!("Failed to rename file: {}", e))?;
     }
 
-    let mut metadata = load_metadata(&state.output_dir);
+    let mut metadata = load_metadata(&state.output_dir());
     if let Some(entry) = metadata.iter_mut().find(|m| m.slug == old_slug) {
         entry.name = new_name;
         entry.slug = new_slug.clone();
     }
-    save_metadata(&state.output_dir, &metadata);
+    save_metadata(&state.output_dir(), &metadata);
 
     let meta = metadata
         .into_iter()
@@ -158,22 +159,22 @@ pub fn rename_recording(
 
 #[tauri::command]
 pub fn delete_recording(state: State<'_, AudioState>, slug: String) -> Result<(), String> {
-    let file_path = state.output_dir.join(format!("{}.wav", slug));
+    let file_path = state.output_dir().join(format!("{}.wav", slug));
     if file_path.exists() {
         std::fs::remove_file(&file_path)
             .map_err(|e| format!("Failed to delete file: {}", e))?;
     }
 
-    let mut metadata = load_metadata(&state.output_dir);
+    let mut metadata = load_metadata(&state.output_dir());
     metadata.retain(|m| m.slug != slug);
-    save_metadata(&state.output_dir, &metadata);
+    save_metadata(&state.output_dir(), &metadata);
 
     Ok(())
 }
 
 #[tauri::command]
 pub fn get_recording_path(state: State<'_, AudioState>, slug: String) -> Result<String, String> {
-    let file_path = state.output_dir.join(format!("{}.wav", slug));
+    let file_path = state.output_dir().join(format!("{}.wav", slug));
     if !file_path.exists() {
         return Err("Recording file not found".to_string());
     }
@@ -185,4 +186,41 @@ pub fn get_recording_path(state: State<'_, AudioState>, slug: String) -> Result<
             s.strip_prefix(r"\\?\").unwrap_or(&s).to_string()
         })
         .map_err(|e| format!("Failed to resolve path: {}", e))
+}
+
+#[tauri::command]
+pub fn get_output_dir(state: State<'_, AudioState>) -> String {
+    state.output_dir().to_string_lossy().to_string()
+}
+
+#[tauri::command]
+pub fn set_output_dir(
+    state: State<'_, AudioState>,
+    config_dir: State<'_, ConfigDir>,
+    path: String,
+) -> Result<(), String> {
+    let new_dir = PathBuf::from(&path);
+    std::fs::create_dir_all(&new_dir)
+        .map_err(|e| format!("Failed to create directory: {}", e))?;
+    state.set_output_dir(new_dir);
+    AppConfig::save_output_dir(&config_dir.0, &path);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn open_output_dir(state: State<'_, AudioState>) -> Result<(), String> {
+    let dir = state.output_dir();
+    std::process::Command::new("explorer")
+        .arg(dir)
+        .spawn()
+        .map_err(|e| format!("Failed to open folder: {}", e))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn pick_output_dir() -> Result<Option<String>, String> {
+    let picked = rfd::FileDialog::new()
+        .set_title("Select output folder for recordings")
+        .pick_folder();
+    Ok(picked.map(|p| p.to_string_lossy().to_string()))
 }

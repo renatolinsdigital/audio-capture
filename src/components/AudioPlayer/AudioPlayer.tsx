@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { Recording } from '../../types';
 import styles from './AudioPlayer.module.scss';
 
 interface AudioPlayerProps {
   recording: Recording | null;
+  playKey: number;
   onClose: () => void;
 }
 
@@ -15,7 +15,7 @@ function formatTime(secs: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function AudioPlayer({ recording, onClose }: AudioPlayerProps) {
+export default function AudioPlayer({ recording, playKey, onClose }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -30,28 +30,55 @@ export default function AudioPlayer({ recording, onClose }: AudioPlayerProps) {
       // Normalize Windows backslashes — convertFileSrc requires forward slashes
       const normalizedPath = path.replace(/\\/g, '/');
       const url = convertFileSrc(normalizedPath);
-      console.debug('[AudioPlayer] loading', url);
       audioRef.current.src = url;
       audioRef.current.load();
+      // Auto-play once the audio is ready
+      audioRef.current.oncanplaythrough = () => {
+        audioRef.current?.play().catch(err => {
+          console.error('[AudioPlayer] auto-play rejected:', err);
+        });
+        if (audioRef.current) audioRef.current.oncanplaythrough = null;
+      };
     } catch (err) {
       console.error('[AudioPlayer] Failed to load audio:', err);
     }
   }, [recording]);
 
+  // Track whether the previous recording slug differs from the current one
+  const prevSlugRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (recording) {
+    if (!recording) return;
+    const audio = audioRef.current;
+    const isSameTrack = prevSlugRef.current === recording.slug;
+    prevSlugRef.current = recording.slug;
+
+    if (isSameTrack && audio) {
+      // Same track pressed again — if still playing or paused mid-track, restart
+      // from the beginning. If ended, also restart.
+      audio.currentTime = 0;
+      audio.play().catch(err => {
+        console.error('[AudioPlayer] replay rejected:', err);
+      });
+    } else {
+      // Different track — load fresh
       loadAudio();
       setIsPlaying(false);
       setCurrentTime(0);
     }
-  }, [recording, loadAudio]);
+  }, [recording, playKey, loadAudio]);
 
+  // Attach event listeners whenever the recording changes, because the
+  // <audio> element is only present when recording is non-null.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onDurationChange = () => setDuration(audio.duration || 0);
+    const onDurationChange = () => {
+      const d = audio.duration;
+      setDuration(d && isFinite(d) ? d : 0);
+    };
     const onEnded = () => setIsPlaying(false);
     const onPlay = () => setIsPlaying(true);
     const onPause = () => setIsPlaying(false);
@@ -79,7 +106,7 @@ export default function AudioPlayer({ recording, onClose }: AudioPlayerProps) {
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('error', onError);
     };
-  }, []);
+  }, [recording]);
 
   const togglePlay = () => {
     if (!audioRef.current) return;

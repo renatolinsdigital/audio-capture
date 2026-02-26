@@ -165,3 +165,128 @@
     color: $text-primary;
   }
 }
+
+.gainSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.gainLabel {
+  display: flex;
+  justify-content: space-between;
+  font-family: $font-mono;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: $text-secondary;
+}
+
+.gainValue {
+  color: $accent-primary;
+  min-width: 60px;
+  text-align: right;
+}
+
+.gainSliderRow {
+  display: flex;
+  align-items: center;
+  gap: $space-xs;
+}
+
+.gainEdge {
+  font-family: $font-mono;
+  font-size: 0.6rem;
+  color: $text-muted;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.gainSlider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+  outline: none;
+  cursor: pointer;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: $accent-primary;
+    border-radius: 0;
+    cursor: pointer;
+  }
+
+  &:hover::-webkit-slider-thumb {
+    background: $accent-primary-hover;
+  }
+}
+
+// ── Output folder section ─────────────────────────────────────────────────────
+
+.outputSection {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: $space-xs;
+}
+
+.outputHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.outputLabel {
+  font-family: $font-mono;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: $text-secondary;
+}
+
+.outputActions {
+  display: flex;
+  gap: $space-xs;
+}
+
+.outputBtn {
+  padding: 2px $space-xs;
+  font-size: 0.75rem;
+  background: $bg-surface;
+  border-color: $border-color;
+  color: $text-secondary;
+  box-shadow: none;
+  min-width: 28px;
+  line-height: 1.4;
+
+  &:hover {
+    border-color: $accent-primary;
+    color: $accent-primary;
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.outputPath {
+  font-family: $font-mono;
+  font-size: 0.6rem;
+  color: $text-muted;
+  background: $bg-secondary;
+  border: 1px solid $border-color;
+  padding: $space-xs;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl; // show the end of long paths
+  text-align: left;
+}

@@ -12,7 +12,7 @@ pub const STATE_PAUSED: u8 = 2;
 pub struct AudioState {
     state: Arc<AtomicU8>,
     capture_thread: Mutex<Option<JoinHandle<Result<(), String>>>>,
-    pub output_dir: PathBuf,
+    output_dir: Mutex<PathBuf>,
     current_file: Mutex<Option<PathBuf>>,
     samples_written: Arc<Mutex<u64>>,
     sample_rate: Arc<Mutex<u32>>,
@@ -24,7 +24,7 @@ impl AudioState {
         Self {
             state: Arc::new(AtomicU8::new(STATE_IDLE)),
             capture_thread: Mutex::new(None),
-            output_dir,
+            output_dir: Mutex::new(output_dir),
             current_file: Mutex::new(None),
             samples_written: Arc::new(Mutex::new(0)),
             sample_rate: Arc::new(Mutex::new(48000)),
@@ -32,13 +32,21 @@ impl AudioState {
         }
     }
 
-    pub fn start_recording(&self) -> Result<(), String> {
+    pub fn output_dir(&self) -> PathBuf {
+        self.output_dir.lock().unwrap().clone()
+    }
+
+    pub fn set_output_dir(&self, path: PathBuf) {
+        *self.output_dir.lock().unwrap() = path;
+    }
+
+    pub fn start_recording(&self, gain_db: f32) -> Result<(), String> {
         let current = self.state.load(Ordering::SeqCst);
         if current != STATE_IDLE {
             return Err("Already recording".to_string());
         }
 
-        let temp_path = self.output_dir.join("_temp_recording.wav");
+        let temp_path = self.output_dir().join("_temp_recording.wav");
         *self.current_file.lock().unwrap() = Some(temp_path.clone());
         *self.samples_written.lock().unwrap() = 0;
 
@@ -48,9 +56,11 @@ impl AudioState {
         let samples_written = self.samples_written.clone();
         let sample_rate = self.sample_rate.clone();
         let channels = self.channels.clone();
+        // Convert the UI gain slider (dB) to a linear multiplier.
+        let config_gain = 10_f32.powf(gain_db / 20.0);
 
         let handle = thread::spawn(move || {
-            capture_loopback(temp_path, state, samples_written, sample_rate, channels)
+            capture_loopback(temp_path, state, samples_written, sample_rate, channels, config_gain)
         });
 
         *self.capture_thread.lock().unwrap() = Some(handle);
@@ -129,6 +139,7 @@ fn capture_loopback(
     samples_written: Arc<Mutex<u64>>,
     sample_rate_out: Arc<Mutex<u32>>,
     channels_out: Arc<Mutex<u16>>,
+    config_gain: f32,
 ) -> Result<(), String> {
     use std::ptr;
     use windows::Win32::Media::Audio::*;
@@ -164,7 +175,6 @@ fn capture_loopback(
         let n_channels = format.nChannels;
         let sample_rate = format.nSamplesPerSec;
         let bits_per_sample = format.wBitsPerSample;
-        let _block_align = format.nBlockAlign;
 
         // Store format info
         *sample_rate_out.lock().unwrap() = sample_rate;
@@ -216,12 +226,6 @@ fn capture_loopback(
             .Start()
             .map_err(|e| format!("Failed to start audio client: {}", e))?;
 
-        // Gain applied to every sample before writing.
-        // WASAPI loopback captures the mix at whatever the system volume is set to,
-        // which is often well below 0 dBFS.  A multiplier of 3.0 (~9.5 dB) closes
-        // most of that gap without clipping typical content; clamp keeps it safe.
-        const GAIN: f32 = 3.0;
-
         // Capture loop
         loop {
             let current_state = state.load(Ordering::SeqCst);
@@ -272,7 +276,7 @@ fn capture_loopback(
                             );
                             for &sample in data {
                                 writer
-                                    .write_sample((sample * GAIN).clamp(-1.0, 1.0))
+                                    .write_sample((sample * config_gain).clamp(-1.0, 1.0))
                                     .map_err(|e| format!("Write failed: {}", e))?;
                             }
                         }
@@ -332,6 +336,7 @@ fn capture_loopback(
     _samples_written: Arc<Mutex<u64>>,
     _sample_rate_out: Arc<Mutex<u32>>,
     _channels_out: Arc<Mutex<u16>>,
+    _config_gain: f32,
 ) -> Result<(), String> {
     Err("System audio capture is only supported on Windows".to_string())
 }

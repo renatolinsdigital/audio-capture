@@ -39,7 +39,7 @@ cmd //c tauri-dev.bat dev  # Git Bash
 - Starts the Vite dev server and compiles a debug Rust binary
 - Opens the desktop window — **this is the app**
 - Both sides hot-reload: save a `.tsx` file → instant HMR; save a `.rs` file → Cargo recompiles and reloads (~5s)
-- Recordings → `<project root>/output/`
+- Recordings → Desktop (user-configurable)
 
 The browser tab at `http://localhost:1420` also appears. Ignore it unless you're doing pure CSS/layout work on a component that doesn't call `invoke()`.
 
@@ -60,7 +60,8 @@ npm run start       # launch any time after, no compilation
   Run this first:  npm run build:dev
 ```
 
-- Recordings → `<project root>/output/` — path baked into the binary at compile time via the `dev-paths` Cargo feature
+- Recordings → Desktop by default (user-configurable in the app)
+- Config → `audio-capture.toml` in `<project root>/` — stores the chosen output folder
 - Switching between `build:dev` and `build:prod` always forces a full Rust recompile (different feature set)
 
 ---
@@ -73,7 +74,8 @@ npm run build:prod
 
 Produces a self-contained installer. `npm run start` will refuse to run this binary.
 
-- Recordings → `output/` next to wherever the `.exe` is installed
+- Recordings → Desktop by default (user-configurable in the app)
+- Config → `audio-capture.toml` in `%LOCALAPPDATA%\com.audiocapture.app\` (created automatically on first run)
 - Installers written to `src-tauri/target/release/bundle/`:
   ```
   msi\Audio Capture_0.1.0_x64_en-US.msi
@@ -84,22 +86,39 @@ Produces a self-contained installer. `npm run start` will refuse to run this bin
 
 ## Output folder
 
-| Command | Recordings go to |
-|---|---|
-| `tauri-dev.bat dev` | `<project root>/output/` |
-| `npm run build:dev` → `npm run start` | `<project root>/output/` |
-| `npm run build:prod` → installer | `output/` next to the `.exe` |
+By default recordings land on the **Desktop**. The app lets you pick any folder and remembers the choice across restarts.
 
-The folder also contains `recordings.json` — a metadata index maintained by the Rust backend.
+| Command | Default recording location | Config file |
+|---|---|---|
+| `tauri-dev.bat dev` | Desktop | `<project root>/audio-capture.toml` |
+| `npm run build:dev` → `npm run start` | Desktop | `<project root>/audio-capture.toml` |
+| `npm run build:prod` → installer | Desktop | `%LOCALAPPDATA%\com.audiocapture.app\audio-capture.toml` |
+
+The chosen folder is stored as `output_dir` in `audio-capture.toml` and takes effect immediately. The folder also contains `recordings.json` — a metadata index maintained by the Rust backend.
+
+### Changing the output folder in the app
+
+When the app is idle (not recording), the controls panel shows an **OUTPUT FOLDER** section with:
+- the current folder path
+- a 📁 button — opens the folder in Windows Explorer
+- a `…` button — opens a folder-picker dialog to select a new location
+
+Switching folders does not move existing recordings. Each folder has its own independent `recordings.json` index.
 
 ---
 
-## Build times
+## Configuration
 
-The **first** build compiles ~450 Rust crates from scratch (1–3 min). After that, Cargo is incremental:
+The file `audio-capture.toml` stores the app’s preferences. It is created automatically on the first run.
 
-- No Rust changes → `Finished in ~0.5s`, no recompile
-- Your files changed → only those files recompile (~2–10s)
-- Switched `build:dev` ↔ `build:prod` → full recompile (feature set changed)
+The only setting persisted to this file is `output_dir` — written automatically when you change the output folder via the UI. You can also edit it manually:
 
-Don't delete `src-tauri/target/` — it's gitignored for size but losing it means starting over. Use `cargo clean` only if the cache is corrupted.
+```toml
+# audio-capture.toml
+
+# Absolute path to the folder where recordings are saved.
+# Managed by the app; leave unset to use the Desktop (default).
+# output_dir = "C:\\Users\\you\\Music\\Recordings"
+```
+
+**Gain** is not stored in this file. The baseline is always system-level unity (0 dB). Use the in-app **GAIN** slider (−6 to +6 dB) before each recording to adjust.
