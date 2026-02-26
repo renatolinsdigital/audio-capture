@@ -1,0 +1,137 @@
+@use './theme' as *;
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: $font-mono;
+  background-color: $bg-primary;
+  color: $text-primary;
+  overflow: hidden;
+  user-select: none;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: $font-heading;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+button {
+  font-family: $font-mono;
+  font-weight: 600;
+  cursor: pointer;
+  border: $border-width solid $border-color;
+  background: $bg-surface;
+  color: $text-primary;
+  padding: $space-sm $space-md;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  transition: all $transition-fast;
+
+  &:hover {
+    border-color: $accent-primary;
+    background: $bg-surface-hover;
+  }
+
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    &:hover {
+      border-color: $border-color;
+      background: $bg-surface;
+    }
+    &:active {
+      transform: none;
+    }
+  }
+}
+
+input {
+  font-family: $font-mono;
+  font-size: 0.9rem;
+  background: $bg-primary;
+  border: $border-width solid $border-color;
+  color: $text-primary;
+  padding: $space-sm $space-md;
+  outline: none;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    border-color: $accent-primary;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.8rem;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: $bg-primary;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $border-strong;
+  &:hover {
+    background: $text-muted;
+  }
+}
+
+// Utility: pulsing recording indicator
+@keyframes pulse-recording {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}

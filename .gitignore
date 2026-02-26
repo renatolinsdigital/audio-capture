@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Rust / Cargo
+src-tauri/target/
+
+# Dev build sentinel (written by `npm run build:dev`, tracks which build is in target/release)
+src-tauri/target/release/.dev-build
+
+# Tauri generated
+src-tauri/gen/schemas/
+
+# Recordings output
+output/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/settings.json
+.idea/
+*.suo
+*.user

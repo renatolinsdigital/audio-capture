@@ -1,0 +1,167 @@
+@use '../../theme' as *;
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-xl;
+  width: 100%;
+}
+
+.visualizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring {
+  width: 140px;
+  height: 140px;
+  border: $border-thick solid $border-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all $transition-base;
+  position: relative;
+
+  &.active {
+    border-color: $danger;
+    box-shadow:
+      0 0 0 4px rgba($danger, 0.15),
+      $shadow-md;
+    animation: pulse-border 2s ease-in-out infinite;
+  }
+
+  &.pausedRing {
+    border-color: $warning;
+    box-shadow: 0 0 0 4px rgba($warning, 0.1);
+  }
+}
+
+@keyframes pulse-border {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba($danger, 0.15),
+      $shadow-md;
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba($danger, 0.05),
+      $shadow-md;
+  }
+}
+
+.innerRing {
+  width: 100px;
+  height: 100px;
+  border: $border-width solid $border-color;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $bg-primary;
+}
+
+.icon {
+  font-size: 1.8rem;
+  color: $text-muted;
+  line-height: 1;
+
+  .active & {
+    color: $danger;
+  }
+
+  .pausedRing & {
+    color: $warning;
+    font-size: 1.2rem;
+  }
+}
+
+.label {
+  font-family: $font-mono;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: $text-secondary;
+  text-align: center;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: column;
+  gap: $space-sm;
+  width: 100%;
+}
+
+.recordBtn,
+.pauseBtn,
+.resumeBtn,
+.stopBtn {
+  width: 100%;
+  padding: $space-md;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-sm;
+}
+
+.recordBtn {
+  background: $danger;
+  border-color: $danger;
+  color: #fff;
+  box-shadow: $shadow-md;
+
+  &:hover {
+    background: $danger-hover;
+    border-color: $danger-hover;
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.pauseBtn {
+  background: $bg-surface;
+  border-color: $warning;
+  color: $warning;
+  box-shadow: 4px 4px 0px $warning;
+
+  &:hover {
+    background: rgba($warning, 0.1);
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.resumeBtn {
+  background: rgba($success, 0.1);
+  border-color: $success;
+  color: $success;
+  box-shadow: 4px 4px 0px $success;
+
+  &:hover {
+    background: rgba($success, 0.2);
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+}
+
+.stopBtn {
+  background: $bg-surface;
+  border-color: $border-strong;
+  color: $text-secondary;
+
+  &:hover {
+    border-color: $text-secondary;
+    color: $text-primary;
+  }
+}

@@ -1,0 +1,36 @@
+[package]
+name = "audio-capture"
+version = "0.1.0"
+edition = "2021"
+
+# dev-paths: bakes the project root path at compile time so the dev build
+# always writes recordings to <project>/output/ regardless of working directory.
+# Production builds omit this feature and resolve output/ next to the .exe.
+[features]
+dev-paths = []
+
+[lib]
+name = "audio_capture_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hound = "3.5"
+slug = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61", features = [
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_Foundation",
+] }
+
+[profile.release]
+strip = true
+lto = true

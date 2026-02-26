@@ -1,0 +1,35 @@
+@use './theme' as *;
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: $bg-primary;
+}
+
+.main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  border-top: $border-width solid $border-color;
+}
+
+.controlsPanel {
+  width: 320px;
+  min-width: 320px;
+  border-right: $border-width solid $border-color;
+  background: $bg-secondary;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $space-xl;
+}
+
+.listPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: $bg-primary;
+}

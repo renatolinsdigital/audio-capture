@@ -1,0 +1,55 @@
+@use '../../theme' as *;
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  border-bottom: $border-width solid $border-color;
+  background: $bg-secondary;
+  padding: 0 $space-md;
+  min-height: 48px;
+}
+
+.icon {
+  font-size: 1.1rem;
+  color: $text-muted;
+  margin-right: $space-sm;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: $text-primary;
+  padding: $space-sm 0;
+  font-size: 0.85rem;
+
+  &:focus {
+    border: none;
+    outline: none;
+  }
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+.clear {
+  background: none;
+  border: none;
+  color: $text-muted;
+  font-size: 0.9rem;
+  padding: $space-xs;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover {
+    color: $accent-primary;
+    background: none;
+    border: none;
+  }
+
+  &:active {
+    transform: none;
+  }
+}

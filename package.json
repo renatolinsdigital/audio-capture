@@ -1,0 +1,58 @@
+{
+  "name": "audio-capture",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "build:dev": "tauri-dev.bat build -- --features dev-paths && node scripts/mark-dev-build.cjs",
+    "build:prod": "tauri-dev.bat build && node scripts/clear-dev-build.cjs",
+    "start": "node scripts/start-dev.js",
+    "lint": "eslint src --max-warnings 0",
+    "lint:fix": "eslint src --max-warnings 0 --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
+    "type-check": "tsc --noEmit",
+    "lint:rust": "cd src-tauri && cargo clippy -- -D warnings",
+    "lint:rust:fix": "cd src-tauri && cargo clippy --fix --allow-dirty -- -D warnings",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx}": [
+      "eslint --max-warnings 0",
+      "prettier --write"
+    ],
+    "src/**/*.{scss,css,json}": [
+      "prettier --write"
+    ],
+    "src-tauri/src/**/*.rs": [
+      "bash -c 'cd src-tauri && cargo clippy -- -D warnings'"
+    ]
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.3",
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "eslint": "^9.39.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "sass": "^1.80.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.56.1",
+    "vite": "^6.0.0"
+  }
+}

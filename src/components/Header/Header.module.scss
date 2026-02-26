@@ -1,0 +1,85 @@
+@use '../../theme' as *;
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-md $space-xl;
+  background: $bg-secondary;
+  border-bottom: $border-thick solid $accent-primary;
+  min-height: 60px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: $space-md;
+}
+
+.title {
+  font-family: $font-heading;
+  font-size: 1.4rem;
+  color: $text-primary;
+  letter-spacing: 0.12em;
+}
+
+.version {
+  font-family: $font-mono;
+  font-size: 0.65rem;
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid $border-color;
+  padding: 2px 6px;
+}
+
+.statusGroup {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  display: inline-block;
+
+  &.recording {
+    background: $danger;
+    animation: pulse-recording 1s ease-in-out infinite;
+  }
+
+  &.paused {
+    background: $warning;
+    animation: blink 1.2s step-end infinite;
+  }
+}
+
+.statusLabel {
+  font-family: $font-mono;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: $accent-primary;
+}
+
+.timer {
+  font-family: $font-mono;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: $text-primary;
+  letter-spacing: 0.08em;
+  background: $bg-primary;
+  border: $border-width solid $border-color;
+  padding: $space-xs $space-md;
+  min-width: 90px;
+  text-align: center;
+}
+
+.idleLabel {
+  font-family: $font-mono;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: $text-muted;
+  letter-spacing: 0.15em;
+}

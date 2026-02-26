@@ -1,0 +1,148 @@
+@use '../../theme' as *;
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: $z-modal-backdrop;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  background: $bg-secondary;
+  border: $border-thick solid $accent-primary;
+  box-shadow: 8px 8px 0px $accent-primary;
+  width: 460px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $space-md $space-lg;
+  border-bottom: $border-width solid $border-color;
+}
+
+.title {
+  font-family: $font-heading;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  color: $text-primary;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: $text-muted;
+  font-size: 0.9rem;
+  padding: 0;
+
+  &:hover {
+    border-color: $danger;
+    color: $danger;
+  }
+}
+
+.body {
+  padding: $space-lg;
+  display: flex;
+  flex-direction: column;
+  gap: $space-md;
+}
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: $text-secondary;
+}
+
+.input {
+  padding: $space-md;
+  font-size: 1rem;
+  border: $border-width solid $border-color;
+  background: $bg-primary;
+  color: $text-primary;
+
+  &:focus {
+    border-color: $accent-primary;
+    box-shadow: $shadow-sm;
+  }
+}
+
+.slugPreview {
+  display: flex;
+  align-items: center;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  background: $bg-primary;
+  border: 1px solid $border-color;
+}
+
+.slugLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: $text-muted;
+  letter-spacing: 0.1em;
+}
+
+.slugValue {
+  font-size: 0.8rem;
+  color: $accent-secondary;
+  font-family: $font-mono;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-sm;
+  padding: $space-md $space-lg;
+  border-top: $border-width solid $border-color;
+}
+
+.cancelBtn {
+  background: transparent;
+  border-color: $border-strong;
+  color: $text-secondary;
+  padding: $space-sm $space-lg;
+
+  &:hover {
+    color: $text-primary;
+    border-color: $text-secondary;
+  }
+}
+
+.saveBtn {
+  background: $accent-primary;
+  border-color: $accent-primary;
+  color: #fff;
+  padding: $space-sm $space-lg;
+  box-shadow: $shadow-sm;
+
+  &:hover {
+    background: $accent-primary-hover;
+  }
+
+  &:active {
+    box-shadow: none;
+  }
+
+  &:disabled {
+    background: $bg-surface;
+    border-color: $border-color;
+    color: $text-muted;
+    box-shadow: none;
+  }
+}

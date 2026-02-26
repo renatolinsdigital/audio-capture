@@ -1,0 +1,177 @@
+@use '../../theme' as *;
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 1fr 90px 80px 120px 110px;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  background: $bg-secondary;
+  border-bottom: $border-width solid $border-color;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: $text-muted;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 1fr 90px 80px 120px 110px;
+  gap: $space-sm;
+  padding: $space-sm $space-md;
+  border-bottom: 1px solid $border-color;
+  align-items: center;
+  transition: background $transition-fast;
+  min-height: 44px;
+
+  &:hover {
+    background: $bg-surface;
+  }
+
+  &.playing {
+    background: rgba($accent-primary, 0.05);
+    border-left: $border-thick solid $accent-primary;
+  }
+}
+
+.colName {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.name {
+  font-size: 0.85rem;
+  color: $text-primary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  cursor: default;
+}
+
+.colDuration,
+.colSize,
+.colDate {
+  font-size: 0.75rem;
+  color: $text-secondary;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.colActions {
+  display: flex;
+  gap: $space-xs;
+  justify-content: flex-end;
+}
+
+.actionBtn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  background: transparent;
+  border: 1px solid transparent;
+  color: $text-muted;
+
+  &:hover {
+    border-color: $border-strong;
+    color: $text-primary;
+    background: $bg-surface;
+  }
+}
+
+.deleteBtn {
+  &:hover {
+    border-color: $danger;
+    color: $danger;
+    background: rgba($danger, 0.08);
+  }
+}
+
+.editRow {
+  display: flex;
+  gap: $space-xs;
+  align-items: center;
+}
+
+.editInput {
+  flex: 1;
+  padding: $space-xs $space-sm;
+  font-size: 0.8rem;
+  min-width: 0;
+  border: $border-width solid $accent-primary;
+  background: $bg-primary;
+}
+
+.editConfirm,
+.editCancel {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  background: transparent;
+  border: 1px solid $border-color;
+}
+
+.editConfirm {
+  color: $success;
+  &:hover {
+    border-color: $success;
+    background: rgba($success, 0.1);
+  }
+}
+
+.editCancel {
+  color: $text-muted;
+  &:hover {
+    border-color: $danger;
+    color: $danger;
+  }
+}
+
+// Empty state
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-md;
+  padding: $space-3xl;
+}
+
+.emptyIcon {
+  font-size: 3rem;
+  color: $border-color;
+  line-height: 1;
+}
+
+.emptyText {
+  font-family: $font-heading;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: $text-muted;
+  letter-spacing: 0.15em;
+}
+
+.emptyHint {
+  font-size: 0.75rem;
+  color: $text-muted;
+  letter-spacing: 0.05em;
+}
