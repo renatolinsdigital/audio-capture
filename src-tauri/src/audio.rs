@@ -209,7 +209,6 @@ fn capture_loopback(
 
         // Store format info
         *sample_rate_out.lock().unwrap() = sample_rate;
-        *channels_out.lock().unwrap() = n_channels;
 
         // Initialize audio client in LOOPBACK mode
         // Buffer duration: 1 second (in 100-nanosecond units)
@@ -243,6 +242,9 @@ fn capture_loopback(
         };
         let out_channels: u16 = if force_mono && n_channels == 2 { 1 } else { n_channels };
 
+        // Store the *output* channel count so duration is calculated correctly
+        *channels_out.lock().unwrap() = out_channels;
+
         let spec = WavSpec {
             channels: out_channels,
             sample_rate,
@@ -261,11 +263,52 @@ fn capture_loopback(
             .Start()
             .map_err(|e| format!("Failed to start audio client: {}", e))?;
 
+        let mut client_running = true;
+
         // Capture loop
         loop {
             let current_state = state.load(Ordering::SeqCst);
             if current_state == STATE_IDLE {
                 break;
+            }
+
+            // ── Handle PAUSED state ─────────────────────────────────────────
+            // Stop the WASAPI audio client while paused so no API calls can
+            // fail and silently kill the capture thread.  When recording
+            // resumes we simply re-Start() the client.
+            if current_state == STATE_PAUSED {
+                if client_running {
+                    // Drain any remaining packets so the buffer is clean
+                    loop {
+                        let ps = capture_client.GetNextPacketSize().unwrap_or(0);
+                        if ps == 0 {
+                            break;
+                        }
+                        let mut buf: *mut u8 = ptr::null_mut();
+                        let mut nf = 0u32;
+                        let mut fl = 0u32;
+                        if capture_client
+                            .GetBuffer(&mut buf, &mut nf, &mut fl, None, None)
+                            .is_ok()
+                        {
+                            capture_client.ReleaseBuffer(nf).ok();
+                        }
+                    }
+                    audio_client.Stop().ok();
+                    client_running = false;
+                }
+                // Sleep while paused – no WASAPI calls at all
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                continue;
+            }
+
+            // ── STATE_RECORDING ─────────────────────────────────────────────
+            // Restart the WASAPI client if it was stopped for a pause
+            if !client_running {
+                audio_client
+                    .Start()
+                    .map_err(|e| format!("Failed to restart audio client after resume: {}", e))?;
+                client_running = true;
             }
 
             // Sleep briefly to avoid spinning
@@ -291,9 +334,7 @@ fn capture_loopback(
                     )
                     .map_err(|e| format!("GetBuffer failed: {}", e))?;
 
-                let is_recording = state.load(Ordering::SeqCst) == STATE_RECORDING;
-
-                if is_recording && num_frames > 0 {
+                if num_frames > 0 {
                     let total_samples = (num_frames as usize) * (n_channels as usize);
                     let is_silent = flags & 0x2 != 0; // AUDCLNT_BUFFERFLAGS_SILENT
 
@@ -390,9 +431,11 @@ fn capture_loopback(
         }
 
         // Stop and finalize
-        audio_client
-            .Stop()
-            .map_err(|e| format!("Failed to stop audio client: {}", e))?;
+        if client_running {
+            audio_client
+                .Stop()
+                .map_err(|e| format!("Failed to stop audio client: {}", e))?;
+        }
 
         writer
             .finalize()
